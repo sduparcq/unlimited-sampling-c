@@ -1,8 +1,9 @@
 from dataclasses import dataclass
-import matplotlib.pyplot as plt
+
 import jax
 import jax.numpy as jnp
 
+from ..computation.fista import compute_fista
 from ..operators import D_inv, DFT_matrix
 
 
@@ -17,11 +18,42 @@ def soft_threshold_jax(x, gamma):
     )
 
 
+@jax.jit
+def lambda_ise_jax(x, L, threshold):
+    return jnp.where(
+        x > threshold,
+        2.0 * L,
+        jnp.where(
+            x < -threshold,
+            -2.0 * L,
+            0.0,
+        ),
+    )
+
+
+@dataclass
+class FistaPreparationParameters:
+    delta: int
+    omega: float
+    Te: float
+
+
 @dataclass
 class FistaParameters:
     tau: float
     max_iter: int
-    delta: int
+
+
+@dataclass
+class FistaPostProcessParameters:
+    L: float
+    threshold: float
+
+
+@dataclass
+class FistaSolveResult:
+    jumps: jnp.ndarray
+    parameters: FistaParameters
 
 
 @dataclass
@@ -29,7 +61,9 @@ class FistaResult:
     recovered_signal: jnp.ndarray
     eps: jnp.ndarray
     jumps: jnp.ndarray
+    solve_result: FistaSolveResult
     parameters: FistaParameters
+    post_process_parameters: FistaPostProcessParameters
 
 
 class PreparedFista:
@@ -118,7 +152,6 @@ class PreparedFista:
             dtype=jnp.complex128,
         )
 
-        # Correction : suppression de self.D_inv pour correspondre au code initial (-DFT_truncated @ y_mod)
         b = -(self.DFT_truncated @ y_mod)
 
         jumps = self._solve_optim(
@@ -129,16 +162,7 @@ class PreparedFista:
             lip=self.lip,
         )
 
-        eps = jnp.cumsum(jumps)
-
-        recovered_signal = y_mod + eps
-
-        plt.plot(jumps)
-        plt.show()
-
-        return FistaResult(
-            recovered_signal=recovered_signal,
-            eps=eps,
+        return FistaSolveResult(
             jumps=jumps,
             parameters=params,
         )
@@ -147,35 +171,53 @@ class PreparedFista:
 class Fista:
     def prepare(
         self,
+        params: FistaPreparationParameters,
         N: int,
-        delta: int,
-        omega: float,
-        Te: float,
     ):
         D_inv_matrix = D_inv(N)
         DFT = DFT_matrix(N)
 
-        freq_step = 2.0 * jnp.pi / (N * Te)
-
-        K = int(jnp.ceil(omega / freq_step))
-
-        DFT_truncated = DFT[
-            K + delta : N - (K + delta - 1),
-            :,
-        ]
-
-        A = DFT_truncated @ D_inv_matrix
-
-        lip = float(
-            jnp.linalg.norm(
-                A,
-                ord=2,
-            )
-            ** 2
+        DFT_truncated, lip = compute_fista(
+            DFT=DFT,
+            D_inv=D_inv_matrix,
+            N=N,
+            delta=params.delta,
+            omega=params.omega,
+            Te=params.Te,
         )
 
         return PreparedFista(
             DFT_truncated=DFT_truncated,
             D_inv=D_inv_matrix,
             lip=lip,
+        )
+
+    def post_process(
+        self,
+        y_mod,
+        solve_result: FistaSolveResult,
+        params: FistaPostProcessParameters,
+    ):
+        y_mod = jnp.asarray(
+            y_mod,
+            dtype=jnp.complex128,
+        )
+
+        jumps = lambda_ise_jax(
+            solve_result.jumps,
+            params.L,
+            params.threshold,
+        )
+
+        eps = jnp.cumsum(jumps)
+
+        recovered_signal = y_mod + eps
+
+        return FistaResult(
+            recovered_signal=recovered_signal,
+            eps=eps,
+            jumps=jumps,
+            solve_result=solve_result,
+            parameters=solve_result.parameters,
+            post_process_parameters=params,
         )

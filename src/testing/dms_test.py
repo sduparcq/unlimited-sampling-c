@@ -1,13 +1,14 @@
 import matplotlib.pyplot as plt
 import jax.numpy as jnp
 
-from ..methods.fista import (
-    Fista,
-    FistaParameters,
-    FistaPostProcessParameters,
+from ..methods.dms import (
+    DMS,
+    DMSParameters,
+    DMSPostProcessParameters,
 )
 from ..signals.factory import SignalFactory
 from ..signals.signal import SignalParameters
+
 
 """
 This file allows to test the algos on an example
@@ -36,56 +37,64 @@ def main():
     )
 
     factory = SignalFactory()
+
     signal = factory.generate_signal(signal_params)
 
-    fista = Fista()
+    dms = DMS()
 
-    prepared = fista.prepare(
-        N=N,
-        delta=1,
-        omega=Omega,
-        Te=Te,
-    )
+    prepared = dms.prepare(N=N)
 
-    solve_params = FistaParameters(
-        tau=0.1,
-        max_iter=10_000,
-        delta=1,
+    solve_params = DMSParameters(
+        ext_iter=100,
+        int_iter=100,
+        alpha=0.015,
+        beta=0.18,
     )
 
     solve_result = prepared.solve(
-        y_mod=signal.mod_samples,
+        z=signal.mod_samples,
         params=solve_params,
     )
+    plt.plot(solve_result.x)
+    plt.show()
 
-    post_process_params = FistaPostProcessParameters(
+    plt.plot(solve_result.e)
+    plt.show()
+
+    post_process_params = DMSPostProcessParameters(
         L=0.3,
-        threshold=0.3,
+        threshold=0.5,
     )
 
-    result = fista.post_process(
-        y_mod=signal.mod_samples,
+    result = dms.post_process(
+        z=signal.mod_samples,
         solve_result=solve_result,
         params=post_process_params,
+        D=prepared.D,
     )
 
-    print("N:", N)
-    print("Te:", Te)
+    print("N =", N)
+    print("Te =", Te)
+    print("D shape =", prepared.D.shape)
+
     print(
-        "DFT shape:",
-        prepared.DFT_truncated.shape,
+        "x finite =",
+        jnp.all(jnp.isfinite(solve_result.x)),
     )
+
     print(
-        "Lipschitz:",
-        prepared.lip,
+        "e finite =",
+        jnp.all(jnp.isfinite(solve_result.e)),
     )
+
     print(
-        "recovered min:",
-        jnp.min(result.recovered_signal.real),
+        "recovered finite =",
+        jnp.all(jnp.isfinite(result.recovered_signal)),
     )
+
     print(
-        "recovered max:",
-        jnp.max(result.recovered_signal.real),
+        "jumps =",
+        result.jumps,
     )
 
     t = signal.support
@@ -106,14 +115,14 @@ def main():
 
     plt.plot(
         t,
-        result.recovered_signal.real,
+        result.recovered_signal,
         "--",
-        label="FISTA reconstruction",
+        label="DMS reconstruction",
     )
 
     plt.xlabel("t")
     plt.ylabel("Amplitude")
-    plt.title("FISTA reconstruction")
+    plt.title("DMS reconstruction")
     plt.legend()
     plt.grid()
     plt.tight_layout()
