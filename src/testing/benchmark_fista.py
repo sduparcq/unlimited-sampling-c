@@ -15,15 +15,15 @@ def main():
         Omega=10.0,
         bounds=(0.0, 1.0),
         L=0.3,
-        sigma_values=[0.0, 0.03, 0.05],
+        sigma_values=[0.0, 0.03, 0.05, 0.07, 0.09],
         s_seeds=range(1, 11),
         n_seeds=range(1, 11),
         # method params
-        tau_values=[0.05, 0.1],
-        max_iter=1000,
+        tau_values=np.linspace(0.001, 1, 10),
+        max_iter=5_000,
         delta=1,
         # post processing params
-        threshold_values=[0.1],
+        threshold_values=np.linspace(0.1, 0.9, 9),
     )
 
     print(f"Number of experiments: {len(experiments)}")

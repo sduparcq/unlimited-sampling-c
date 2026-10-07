@@ -20,4 +20,5 @@ def fista_result_to_row(
         "is_recovered": metrics.is_recovered,
         "uot_distance": metrics.uot_distance,
         "uot_distance_q": metrics.uot_distance_q,
+        "convergence_witness": metrics.convergence_witness,
     }

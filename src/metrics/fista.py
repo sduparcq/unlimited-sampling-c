@@ -7,6 +7,7 @@ class FistaMetrics:
     is_recovered: int
     uot_distance: float
     uot_distance_q: float
+    convergence_witness: float
 
 
 def compute_fista_metrics(signal, result):
@@ -19,4 +20,5 @@ def compute_fista_metrics(signal, result):
         is_recovered=is_recovered(j_true, j_rec_q),
         uot_distance=uot_distance(j_true, j_rec),
         uot_distance_q=uot_distance(j_true, j_rec_q),
+        convergence_witness=result.solve_result.convergence_witness,
     )

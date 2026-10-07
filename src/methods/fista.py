@@ -54,6 +54,7 @@ class FistaPostProcessParameters:
 class FistaSolveResult:
     jumps: jnp.ndarray
     parameters: FistaParameters
+    convergence_witness: float
 
 
 @dataclass
@@ -128,7 +129,7 @@ class PreparedFista:
                 s_new,
             )
 
-        x, _, _, _ = jax.lax.fori_loop(
+        x, x_prev, _, _ = jax.lax.fori_loop(
             0,
             max_iter,
             body,
@@ -140,7 +141,9 @@ class PreparedFista:
             ),
         )
 
-        return x.real
+        variation = jnp.linalg.norm(x - x_prev)
+
+        return x.real, variation
 
     def solve(
         self,
@@ -154,7 +157,7 @@ class PreparedFista:
 
         b = -(self.DFT_truncated @ y_mod)
 
-        jumps = self._solve_optim(
+        jumps, convergence_witness = self._solve_optim(
             b=b,
             DFT_truncated=self.DFT_truncated,
             max_iter=params.max_iter,
@@ -165,6 +168,7 @@ class PreparedFista:
         return FistaSolveResult(
             jumps=jumps,
             parameters=params,
+            convergence_witness=convergence_witness,
         )
 
 
