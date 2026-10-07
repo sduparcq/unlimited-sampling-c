@@ -30,15 +30,8 @@ def project_jumps(
     D,
 ):
     e_t = (e > threshold).astype(jnp.int32)
-
     a = -jnp.sign(D @ z)
-
     return 2.0 * L * a * e_t
-
-
-@jax.jit
-def lambda_ise_jax(x, L):
-    return 2.0 * L * jnp.round(x / (2.0 * L))
 
 
 @dataclass
@@ -64,6 +57,7 @@ class DMSPostProcessParameters:
 class DMSSolveResult:
     x: jnp.ndarray
     e: jnp.ndarray
+    D: jnp.ndarray
     parameters: DMSParameters
 
 
@@ -159,10 +153,10 @@ class PreparedDMS:
 
     def solve(
         self,
-        z,
+        y_mod,
         params: DMSParameters,
     ):
-        z = jnp.asarray(z)
+        z = jnp.asarray(y_mod)
 
         x, e = self._solve_optim(
             z=z,
@@ -174,6 +168,7 @@ class PreparedDMS:
         return DMSSolveResult(
             x=x,
             e=e,
+            D=self.D,
             parameters=params,
         )
 
@@ -193,19 +188,18 @@ class DMS:
 
     def post_process(
         self,
-        z,
+        y_mod,
         solve_result: DMSSolveResult,
         params: DMSPostProcessParameters,
-        D,
     ):
-        z = jnp.asarray(z)
+        z = jnp.asarray(y_mod)
 
         jumps = project_jumps(
             z=z,
             e=solve_result.e,
             L=params.L,
             threshold=params.threshold,
-            D=D,
+            D=solve_result.D,
         )
 
         jumps = jnp.concatenate(

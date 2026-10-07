@@ -1,132 +1,93 @@
-from dataclasses import dataclass
+from dataclasses import asdict
 from pathlib import Path
 
 from tqdm import tqdm
 
-from ..methods.fista import Fista, FistaResult
-from ..metrics.fista import FistaMetrics, compute_fista_metrics
-from ..signals.factory import SignalFactory
-from .experiments import FistaExperiment
-
 from ..results import *
+from ..signals.factory import SignalFactory
 
 
-@dataclass
-class ExperimentRun:
-    experiment: FistaExperiment
-    result: FistaResult
-
-
-@dataclass
-class BatchResult:
-    experiment: FistaExperiment
-    metrics: FistaMetrics
-
-
-def run_fista(
-    experiment: FistaExperiment,
-    fista: Fista | None = None,
-):
-    if fista is None:
-        fista = Fista()
-
-    factory = SignalFactory()
-
-    prepared = fista.prepare(
-        N=experiment.signal.N,
-        params=experiment.preparation,
-    )
-
-    signal = factory.generate_signal(
-        experiment.signal,
-    )
-
-    solve_result = prepared.solve(
-        y_mod=signal.mod_samples,
-        params=experiment.solver,
-    )
-
-    result = fista.post_process(
-        y_mod=signal.mod_samples,
-        solve_result=solve_result,
-        params=experiment.post_process,
-    )
-
-    return ExperimentRun(
-        experiment=experiment,
-        result=result,
-    )
-
-
-def run_fista_batch(
-    experiments: list[FistaExperiment],
+def run_batch(
+    experiments,
+    method,
+    compute_metrics,
+    result_to_row,
     output_path: str | Path,
 ):
-    fista = Fista()
     factory = SignalFactory()
 
     prepared_cache = {}
-
-    fieldnames = [
-        "M",
-        "Omega",
-        "L",
-        "sigma",
-        "s_seed",
-        "n_seed",
-        "delta",
-        "omega",
-        "Te",
-        "tau",
-        "max_iter",
-        "threshold",
-    ]
+    signal_cache = {}
+    solve_cache = {}
 
     with CSVWriter(
         path=output_path,
-        fieldnames=fieldnames,
     ) as writer:
         for experiment in tqdm(
             experiments,
-            desc="FISTA experiments",
+            desc="Experiments",
         ):
             preparation_key = (
                 experiment.signal.N,
-                experiment.preparation.delta,
-                experiment.preparation.omega,
-                experiment.preparation.Te,
+                tuple(
+                    asdict(
+                        experiment.preparation,
+                    ).items()
+                ),
             )
 
             if preparation_key not in prepared_cache:
-                prepared_cache[preparation_key] = fista.prepare(
+                prepared_cache[preparation_key] = method.prepare(
                     N=experiment.signal.N,
                     params=experiment.preparation,
                 )
 
             prepared = prepared_cache[preparation_key]
 
-            signal = factory.generate_signal(
-                experiment.signal,
+            signal_key = tuple(
+                asdict(
+                    experiment.signal,
+                ).items()
             )
 
-            solve_result = prepared.solve(
-                y_mod=signal.mod_samples,
-                params=experiment.solver,
+            if signal_key not in signal_cache:
+                signal_cache[signal_key] = factory.generate_signal(
+                    experiment.signal,
+                )
+
+            signal = signal_cache[signal_key]
+
+            solver_key = (
+                preparation_key,
+                signal_key,
+                tuple(
+                    asdict(
+                        experiment.solver,
+                    ).items()
+                ),
             )
 
-            result = fista.post_process(
+            if solver_key not in solve_cache:
+                solve_cache[solver_key] = prepared.solve(
+                    y_mod=signal.mod_samples,
+                    params=experiment.solver,
+                )
+
+            solve_result = solve_cache[solver_key]
+
+            result = method.post_process(
                 y_mod=signal.mod_samples,
                 solve_result=solve_result,
                 params=experiment.post_process,
             )
 
-            metrics = compute_fista_metrics(
+            metrics = compute_metrics(
                 signal,
                 result,
             )
 
             writer.write(
-                fista_result_to_row(
+                result_to_row(
                     experiment,
                     metrics,
                 )

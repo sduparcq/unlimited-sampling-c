@@ -1,4 +1,4 @@
-def fista_result_to_row(
+def dms_result_to_row(
     experiment,
     metrics,
 ):
@@ -11,13 +11,13 @@ def fista_result_to_row(
         "s_seed": experiment.signal.s_seed,
         "n_seed": experiment.signal.n_seed,
         # algo params
-        "delta": experiment.preparation.delta,
-        "tau": experiment.solver.tau,
-        "max_iter": experiment.solver.max_iter,
+        "ext_iter": experiment.solver.ext_iter,
+        "int_iter": experiment.solver.int_iter,
+        "alpha": experiment.solver.alpha,
+        "beta": experiment.solver.beta,
         # post process params
         "threshold": experiment.post_process.threshold,
         # metrics
         "is_recovered": metrics.is_recovered,
-        "uot_distance": metrics.uot_distance,
         "uot_distance_q": metrics.uot_distance_q,
     }
