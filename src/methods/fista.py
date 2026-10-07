@@ -21,10 +21,10 @@ def soft_threshold_jax(x, gamma):
 @jax.jit
 def lambda_ise_jax(x, L, threshold):
     return jnp.where(
-        x > threshold,
+        x > threshold * L,
         2.0 * L,
         jnp.where(
-            x < -threshold,
+            x < -threshold * L,
             -2.0 * L,
             0.0,
         ),

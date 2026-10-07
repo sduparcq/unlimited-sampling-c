@@ -16,8 +16,8 @@ def main():
         bounds=(0.0, 1.0),
         L=0.3,
         sigma_values=[0.0, 0.03, 0.05],
-        s_seeds=range(1, 3),
-        n_seeds=range(1, 3),
+        s_seeds=range(1, 11),
+        n_seeds=range(1, 11),
         # method params
         tau_values=[0.05, 0.1],
         max_iter=1000,
