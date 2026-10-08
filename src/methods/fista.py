@@ -147,15 +147,15 @@ class PreparedFista:
 
     def solve(
         self,
-        y_mod,
+        nms,
         params: FistaParameters,
     ):
-        y_mod = jnp.asarray(
-            y_mod,
+        nms = jnp.asarray(
+            nms,
             dtype=jnp.complex128,
         )
 
-        b = -(self.DFT_truncated @ y_mod)
+        b = -(self.DFT_truncated @ nms)
 
         jumps, convergence_witness = self._solve_optim(
             b=b,
@@ -198,12 +198,12 @@ class Fista:
 
     def post_process(
         self,
-        y_mod,
+        nms,
         solve_result: FistaSolveResult,
         params: FistaPostProcessParameters,
     ):
-        y_mod = jnp.asarray(
-            y_mod,
+        nms = jnp.asarray(
+            nms,
             dtype=jnp.complex128,
         )
 
@@ -215,7 +215,7 @@ class Fista:
 
         eps = jnp.cumsum(jumps)
 
-        recovered_signal = y_mod + eps
+        recovered_signal = nms + eps
 
         return FistaResult(
             recovered_signal=recovered_signal,

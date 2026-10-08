@@ -2,18 +2,13 @@ from itertools import product
 
 import jax.numpy as jnp
 
-from ..methods.dms import (
-    DMSParameters,
-    DMSPostProcessParameters,
-    DMSPreparationParameters,
-)
-from ..methods.fista import (
-    FistaParameters,
-    FistaPostProcessParameters,
-    FistaPreparationParameters,
-)
+from ..methods import *
 from ..signals.signal import SignalParameters
-from .experiments import DMSExperiment, FistaExperiment
+from .experiments import (
+    DMSExperiment,
+    FistaExperiment,
+    GLExperiment,
+)
 
 
 def fista_sweep(
@@ -155,6 +150,83 @@ def dms_sweep(
 
         experiments.append(
             DMSExperiment(
+                signal=signal_parameters,
+                preparation=preparation_parameters,
+                solver=solver_parameters,
+                post_process=post_process_parameters,
+            )
+        )
+
+    return experiments
+
+
+def gen_lasso_sweep(
+    *,
+    M,
+    Omega,
+    bounds,
+    L,
+    sigma_values,
+    tau_values,
+    lin_values,
+    threshold_values,
+    solver,
+    epsilon,
+    s_seeds,
+    n_seeds,
+    pt=False,
+):
+    Te = (jnp.pi / Omega) * M
+
+    N = int(jnp.ceil(1.0 + (bounds[1] - bounds[0]) / Te))
+
+    experiments = []
+
+    for (
+        sigma,
+        tau,
+        lin,
+        threshold,
+        s_seed,
+        n_seed,
+    ) in product(
+        sigma_values,
+        tau_values,
+        lin_values,
+        threshold_values,
+        s_seeds,
+        n_seeds,
+    ):
+        signal_parameters = SignalParameters(
+            N=N,
+            M=M,
+            Omega=Omega,
+            L=L,
+            sigma=sigma,
+            bounds=bounds,
+            s_seed=s_seed,
+            n_seed=n_seed,
+            pt=pt,
+        )
+
+        preparation_parameters = GLPreparationParameters(
+            omega=Omega,
+            epsilon=epsilon,
+        )
+
+        solver_parameters = GLParameters(
+            tau=tau,
+            lin=lin,
+            solver=solver,
+        )
+
+        post_process_parameters = GLPostProcessParameters(
+            L=L,
+            threshold=threshold,
+        )
+
+        experiments.append(
+            GLExperiment(
                 signal=signal_parameters,
                 preparation=preparation_parameters,
                 solver=solver_parameters,

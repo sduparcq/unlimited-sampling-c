@@ -153,10 +153,10 @@ class PreparedDMS:
 
     def solve(
         self,
-        y_mod,
+        nms,
         params: DMSParameters,
     ):
-        z = jnp.asarray(y_mod)
+        z = jnp.asarray(nms)
 
         x, e = self._solve_optim(
             z=z,
@@ -188,11 +188,11 @@ class DMS:
 
     def post_process(
         self,
-        y_mod,
+        nms,
         solve_result: DMSSolveResult,
         params: DMSPostProcessParameters,
     ):
-        z = jnp.asarray(y_mod)
+        z = jnp.asarray(nms)
 
         jumps = project_jumps(
             z=z,

@@ -16,3 +16,10 @@ from .dms import (
     PreparedDMS,
     DMS,
 )
+
+from .gen_lasso import (
+    GenLasso,
+    GLPostProcessParameters,
+    GLParameters,
+    GLPreparationParameters,
+)

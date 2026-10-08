@@ -69,14 +69,14 @@ def run_batch(
 
             if solver_key not in solve_cache:
                 solve_cache[solver_key] = prepared.solve(
-                    y_mod=signal.mod_samples,
+                    nms=signal.nms,
                     params=experiment.solver,
                 )
 
             solve_result = solve_cache[solver_key]
 
             result = method.post_process(
-                y_mod=signal.mod_samples,
+                nms=signal.nms,
                 solve_result=solve_result,
                 params=experiment.post_process,
             )

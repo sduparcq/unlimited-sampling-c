@@ -1,15 +1,7 @@
 from dataclasses import dataclass
 
-from ..methods.dms import (
-    DMSParameters,
-    DMSPostProcessParameters,
-    DMSPreparationParameters,
-)
-from ..methods.fista import (
-    FistaParameters,
-    FistaPostProcessParameters,
-    FistaPreparationParameters,
-)
+from ..methods import *
+
 from ..signals.signal import SignalParameters
 
 
@@ -27,3 +19,11 @@ class DMSExperiment:
     preparation: DMSPreparationParameters
     solver: DMSParameters
     post_process: DMSPostProcessParameters
+
+
+@dataclass
+class GLExperiment:
+    signal: SignalParameters
+    preparation: GLPreparationParameters
+    solver: GLParameters
+    post_process: GLPostProcessParameters
