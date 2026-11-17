@@ -68,10 +68,16 @@ def run_batch(
             )
 
             if solver_key not in solve_cache:
-                solve_cache[solver_key] = prepared.solve(
-                    nms=signal.nms,
-                    params=experiment.solver,
-                )
+                if hasattr(prepared, "OG"):
+                    solve_cache[solver_key] = prepared.solve(
+                        signal=signal,
+                        params=experiment.solver,
+                    )
+                else:
+                    solve_cache[solver_key] = prepared.solve(
+                        nms=signal.nms,
+                        params=experiment.solver,
+                    )
 
             solve_result = solve_cache[solver_key]
 

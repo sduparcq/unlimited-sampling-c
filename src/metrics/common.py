@@ -112,6 +112,6 @@ def is_recovered(j_true, j_rec) -> int:
     # plt.plot(j_true, label="j true", linestyle="--")
     # plt.show()
     #
-    if np.sum(np.abs(j_true - j_rec)) <= 0.001:
+    if np.sum(np.abs(j_true - j_rec)) <= 0.0001:
         return 1
     return 0

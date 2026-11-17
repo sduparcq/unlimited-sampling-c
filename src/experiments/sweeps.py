@@ -8,6 +8,7 @@ from .experiments import (
     DMSExperiment,
     FistaExperiment,
     GLExperiment,
+    OGExperiment,
 )
 
 
@@ -87,10 +88,10 @@ def fista_sweep(
 
 def dms_sweep(
     *,
-    M,
+    M_values,
     Omega,
     bounds,
-    L,
+    L_values,
     sigma_values,
     alpha_values,
     beta_values,
@@ -101,27 +102,29 @@ def dms_sweep(
     n_seeds,
     pt=False,
 ):
-    Te = (jnp.pi / Omega) * M
-
-    N = int(jnp.ceil(1.0 + (bounds[1] - bounds[0]) / Te))
-
     experiments = []
 
     for (
+        M,
+        L,
         sigma,
         alpha,
         beta,
         threshold,
         s_seed,
-        n_seed,
     ) in product(
+        M_values,
+        L_values,
         sigma_values,
         alpha_values,
         beta_values,
         threshold_values,
         s_seeds,
-        n_seeds,
     ):
+        Te = (jnp.pi / Omega) * M
+
+        N = int(jnp.ceil(1.0 + (bounds[1] - bounds[0]) / Te))
+
         signal_parameters = SignalParameters(
             N=N,
             M=M,
@@ -130,7 +133,7 @@ def dms_sweep(
             sigma=sigma,
             bounds=bounds,
             s_seed=s_seed,
-            n_seed=n_seed,
+            n_seed=s_seed,
             pt=pt,
         )
 
@@ -227,6 +230,67 @@ def gen_lasso_sweep(
 
         experiments.append(
             GLExperiment(
+                signal=signal_parameters,
+                preparation=preparation_parameters,
+                solver=solver_parameters,
+                post_process=post_process_parameters,
+            )
+        )
+
+    return experiments
+
+
+def og_sweep(
+    *,
+    M_values,
+    Omega,
+    bounds,
+    L_values,
+    sigma_values,
+    Np_values,
+    s_seeds,
+    n_seeds,
+    pt=False,
+):
+    experiments = []
+
+    for (
+        M,
+        L,
+        sigma,
+        Np,
+        s_seed,
+    ) in product(
+        M_values,
+        L_values,
+        sigma_values,
+        Np_values,
+        s_seeds,
+    ):
+        Te = (jnp.pi / Omega) * M
+
+        N = int(jnp.ceil(1.0 + (bounds[1] - bounds[0]) / Te))
+
+        signal_parameters = SignalParameters(
+            N=N,
+            M=M,
+            Omega=Omega,
+            L=L,
+            sigma=sigma,
+            bounds=bounds,
+            s_seed=s_seed,
+            n_seed=s_seed,
+            pt=pt,
+        )
+
+        preparation_parameters = OGPreparationParameters(Np=Np)
+
+        solver_parameters = OGParameters(Np=Np)
+
+        post_process_parameters = OGPostProcessParameters()
+
+        experiments.append(
+            OGExperiment(
                 signal=signal_parameters,
                 preparation=preparation_parameters,
                 solver=solver_parameters,

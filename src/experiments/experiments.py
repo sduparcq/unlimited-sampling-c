@@ -27,3 +27,11 @@ class GLExperiment:
     preparation: GLPreparationParameters
     solver: GLParameters
     post_process: GLPostProcessParameters
+
+
+@dataclass
+class OGExperiment:
+    signal: SignalParameters
+    preparation: OGPreparationParameters
+    solver: OGParameters
+    post_process: OGPostProcessParameters

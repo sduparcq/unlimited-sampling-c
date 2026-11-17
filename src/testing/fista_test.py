@@ -1,16 +1,21 @@
 import matplotlib.pyplot as plt
+import numpy as np
 import jax.numpy as jnp
 
 from ..methods.fista import (
     Fista,
     FistaParameters,
     FistaPostProcessParameters,
+    FistaPreparationParameters,
 )
+
+from ..metrics import *
 from ..signals.factory import SignalFactory
 from ..signals.signal import SignalParameters
 
+
 """
-This file allows to test the algos on an example
+This file allows to test the algos on an example signal
 """
 
 
@@ -28,70 +33,53 @@ def main():
         M=M,
         Omega=Omega,
         L=0.3,
-        sigma=0.0,
+        sigma=0.09,
         bounds=bounds,
-        s_seed=1,
-        n_seed=2,
-        pt=False,
+        s_seed=3,
+        n_seed=20,
+        pt=True,
     )
 
     factory = SignalFactory()
     signal = factory.generate_signal(signal_params)
 
     fista = Fista()
-
-    prepared = fista.prepare(
-        N=N,
+    prepare_params = FistaPreparationParameters(
         delta=1,
         omega=Omega,
         Te=Te,
+    )
+    prepared = fista.prepare(
+        params=prepare_params,
+        N=N,
     )
 
     solve_params = FistaParameters(
         tau=0.1,
         max_iter=10_000,
-        delta=1,
     )
 
     solve_result = prepared.solve(
-        y_mod=signal.mod_samples,
+        nms=signal.nms,
         params=solve_params,
     )
 
     post_process_params = FistaPostProcessParameters(
         L=0.3,
-        threshold=0.3,
+        threshold=0.9,
     )
 
     result = fista.post_process(
-        y_mod=signal.mod_samples,
+        nms=signal.nms,
         solve_result=solve_result,
         params=post_process_params,
     )
 
-    print("N:", N)
-    print("Te:", Te)
-    print(
-        "DFT shape:",
-        prepared.DFT_truncated.shape,
-    )
-    print(
-        "Lipschitz:",
-        prepared.lip,
-    )
-    print(
-        "recovered min:",
-        jnp.min(result.recovered_signal.real),
-    )
-    print(
-        "recovered max:",
-        jnp.max(result.recovered_signal.real),
-    )
-
+    metrics = compute_fista_metrics(signal=signal, result=result)
+    print(f"metrics {metrics}")
     t = signal.support
 
-    plt.figure(figsize=(10, 5))
-
+    plt.subplot(2, 1, 1)
     plt.plot(
         t,
         signal.signal,
@@ -109,6 +97,18 @@ def main():
         result.recovered_signal.real,
         "--",
         label="FISTA reconstruction",
+    )
+    plt.subplot(2, 1, 2)
+    plt.plot(
+        t,
+        np.diff(signal.signal - signal.mod_samples, prepend=0),
+        label="true jumps",
+    )
+    plt.plot(
+        t,
+        result.solve_result.jumps,
+        "--",
+        label="rec jumps",
     )
 
     plt.xlabel("t")

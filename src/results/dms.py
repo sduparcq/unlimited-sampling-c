@@ -20,4 +20,5 @@ def dms_result_to_row(
         # metrics
         "is_recovered": metrics.is_recovered,
         "uot_distance_q": metrics.uot_distance_q,
+        "threshold_gap": metrics.threshold_gap,
     }

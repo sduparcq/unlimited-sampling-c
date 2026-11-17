@@ -2,14 +2,15 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-path = "results/fista/benchmark.csv"
+path = "results/fista/tau_fitting/precise2.csv"
 
 df = pd.read_csv(path)
 
 
 threshold_values = [0.1, 0.5, 0.9]
-sigma_values = [0, 0.03, 0.07]
+sigma_values = [0, 0.05]
 
+# filter values
 df = df[df["threshold"].isin(threshold_values)]
 df = df[df["sigma"].isin(sigma_values)]
 

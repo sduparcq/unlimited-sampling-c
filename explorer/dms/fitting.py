@@ -2,24 +2,30 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-path = "results/dms/benchmark.csv"
+path = "results/dms/param_fitting/new.csv"
 
 df = pd.read_csv(path)
 
-sigma_values = [0, 0.03, 0.05]
+sigma_values = [0, 0.05]
 threshold_values = [0.3, 0.5, 0.7, 0.9]
 
 df = df[df["threshold"].isin(threshold_values)]
 df = df[df["sigma"].isin(sigma_values)]
 
+metrics = [
+    ("recovery_rate", "Non-recovery rate"),
+    ("uot_q", r"$\overline{UOT}_q$"),
+    ("positive_gap", "Mean positive threshold gap"),
+    ("negative_gap_rate", "Negative threshold gap rate"),
+]
 
 for sigma in sigma_values:
     sdf = df[np.isclose(df["sigma"], sigma)]
 
     fig, axes = plt.subplots(
         nrows=len(threshold_values),
-        ncols=3,
-        figsize=(15, 3 * len(threshold_values)),
+        ncols=4,
+        figsize=(26, 2.5 * len(threshold_values)),
     )
 
     for i, threshold in enumerate(threshold_values):
@@ -30,14 +36,17 @@ for sigma in sigma_values:
             .agg(
                 recovery_rate=("is_recovered", "mean"),
                 uot_q=("uot_distance_q", "mean"),
+                positive_gap=(
+                    "threshold_gap",
+                    lambda x: x[x >= 0].mean(),
+                ),
+                negative_gap_rate=(
+                    "threshold_gap",
+                    lambda x: (x < 0).mean(),
+                ),
             )
             .reset_index()
         )
-
-        metrics = [
-            ("recovery_rate", "Non-recovery rate"),
-            ("uot_q", r"$\overline{UOT}_q$"),
-        ]
 
         for j, (metric, title) in enumerate(metrics):
             if metric == "recovery_rate":
@@ -55,6 +64,8 @@ for sigma in sigma_values:
                 heatmap.values,
                 aspect="auto",
                 origin="lower",
+                vmin=0 if metric in ("recovery_rate", "negative_gap_rate") else None,
+                vmax=1 if metric in ("recovery_rate", "negative_gap_rate") else None,
             )
 
             axes[i, j].set_xticks(range(len(heatmap.columns)))
@@ -65,7 +76,6 @@ for sigma in sigma_values:
 
             axes[i, j].set_xlabel(r"$\beta$")
             axes[i, j].set_ylabel(r"$\alpha$")
-
             axes[i, j].set_title(title)
 
             fig.colorbar(
@@ -75,14 +85,14 @@ for sigma in sigma_values:
                 pad=0.04,
             )
 
-            # Affiche la valeur dans chaque case
             for y in range(heatmap.shape[0]):
                 for x in range(heatmap.shape[1]):
                     value = heatmap.iloc[y, x]
+
                     axes[i, j].text(
                         x,
                         y,
-                        f"{value:.3f}",
+                        f"{value:.3f}" if pd.notna(value) else "N/A",
                         ha="center",
                         va="center",
                     )
@@ -95,5 +105,4 @@ for sigma in sigma_values:
     )
 
     fig.tight_layout()
-
     plt.show()

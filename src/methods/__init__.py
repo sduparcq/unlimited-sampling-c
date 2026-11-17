@@ -23,3 +23,10 @@ from .gen_lasso import (
     GLParameters,
     GLPreparationParameters,
 )
+
+from .og import (
+    OG,
+    OGPostProcessParameters,
+    OGParameters,
+    OGPreparationParameters,
+)
